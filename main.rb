@@ -13,9 +13,9 @@ class Serial
 
   def get_sensor_value(sensor)
     case(sensor)
-    when :illumination
+    when "illumination"
       @serialport.puts "1\n"
-    when :temp
+    when "temp"
       @serialport.puts "2\n"
     else
       return false
@@ -25,7 +25,7 @@ class Serial
   end
 
   def get_all_sensor_value
-    return {"temp" => get_sensor_value(:temp), "illumi" => get_sensor_value(:illumination)}
+    return {"temp" => get_sensor_value("temp"), "illumi" => get_sensor_value("illumination")}
   end
 end
 
@@ -59,13 +59,33 @@ config["board"].each do |key, board_conf|
   boards.store(key, Serial.new(log, board_conf))
 end
 
-sleep 3
-p boards["main"].get_sensor_value(:temp)
-p boards["main"].get_sensor_value(:illumination)
-p boards["main"].get_sensor_value(:gomi)
-p boards["main"].get_all_sensor_value
+print "Please wait..."
+3.downto(0) do |i|
+  print " #{i}"
+  if i != 0
+    sleep 1
+  else
+    puts ""
+  end
+end
 
 require 'sinatra'
-get '/' do
-  
+require 'json'
+get '/haims/api/sensors' do
+  # 必須パラメータのチェック
+  if params[:board].nil?
+    {"error" => "Required parameter 'board' not found."}.to_json
+    return
+  end
+
+  if params[:sensor].nil?
+    boards[params[:board]].get_all_sensor_value.to_json
+  else
+    result = boards[params[:board]].get_sensor_value(params[:sensor])
+    if result == false
+      {"error" => "Invalid sensor name."}.to_json
+    else
+      {params[:sensor] => result}.to_json
+    end
+  end
 end
