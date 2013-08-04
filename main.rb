@@ -1,8 +1,37 @@
 #!/usr/bin/env ruby
 # encoding: utf-8
 
-dir = File.expand_path(File.dirname(__FILE__))
+class Serial
+  def initialize(log, serial)
+    @logger = log
+    @serialport = SerialPort.new(serial[0], serial[1])
+    ObjectSpace.define_finalizer(self) {
+      @serialport.close
+      @log.info("SerialPort Closed")
+    }
+  end
 
+  def get_sensor_value(sensor)
+    case(sensor)
+    when :illumination
+      @serialport.puts "1\n"
+    when :temp
+      @serialport.puts "2\n"
+    else
+      return false
+    end
+
+    return @serialport.gets.chomp!.to_i
+  end
+
+  def get_all_sensor_value
+    temp = get_sensor_value(:temp)
+    illumi = get_sensor_value(:illumination)
+  end
+
+end
+
+dir = File.expand_path(File.dirname(__FILE__))
 begin
   ENV['BUNDLE_GEMFILE'] = File.expand_path(File.join(dir, 'Gemfile'))
   require 'bundler/setup'
@@ -20,12 +49,23 @@ else
   puts "Please create 'config.yml'"
 end
 
-#require 'sinatra'
-require 'serialport'
 require 'logger'
-
 log = Logger.new(STDOUT)
 log.level = Logger::INFO
 log.info("HAIMS client started")
 
-serialport = SerialPort.new(config[:board][:main], 9600, 8, 1, SerialPort::NONE)
+require 'serialport'
+boards = {}
+config["board"].each do |key, board_conf|
+  board_conf[1]["parity"] = SerialPort::NONE if board_conf[1]["parity"] == "none"
+  boards.store(key, Serial.new(log, board_conf))
+end
+
+sleep 3
+p boards["main"].get_sensor_value(:temp)
+p boards["main"].get_sensor_value(:illumination)
+p boards["main"].get_sensor_value(:gomi)
+
+require 'sinatra'
+get '/' do
+end
