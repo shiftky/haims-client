@@ -27,6 +27,18 @@ class Serial
   def get_all_sensor_value
     return {"temp" => get_sensor_value("temp"), "illumi" => get_sensor_value("illumination")}
   end
+
+  def send_ir(signal)
+    begin
+      @serialport.puts "0\n"
+      sleep 0.8
+      @serialport.puts signal + "\r"
+      sleep 0.8
+    rescue
+      return false
+    end
+    return true
+  end
 end
 
 dir = File.expand_path(File.dirname(__FILE__))
@@ -75,17 +87,25 @@ get '/haims/api/sensors' do
   # 必須パラメータのチェック
   if params[:board].nil?
     {"error" => "Required parameter 'board' not found."}.to_json
-    return
-  end
-
-  if params[:sensor].nil?
-    boards[params[:board]].get_all_sensor_value.to_json
   else
-    result = boards[params[:board]].get_sensor_value(params[:sensor])
-    if result == false
-      {"error" => "Invalid sensor name."}.to_json
+    if params[:sensor].nil?
+      boards[params[:board]].get_all_sensor_value.to_json
     else
-      {params[:sensor] => result}.to_json
+      result = boards[params[:board]].get_sensor_value(params[:sensor])
+      if result == false
+        {"error" => "Invalid sensor name."}.to_json
+      else
+        {params[:sensor] => result}.to_json
+      end
     end
+  end
+end
+
+post '/haims/api/ir/send' do
+  # 必須パラメータのチェック
+  if params[:board].nil? || params[:signal].nil?
+    {"error" => "Required parameter not found. Please send with 'board' and 'signal'"}.to_json
+  else
+    {"result" => boards[params[:board]].send_ir(params[:signal])}.to_json
   end
 end
