@@ -25,10 +25,8 @@ class Serial
   end
 
   def get_all_sensor_value
-    temp = get_sensor_value(:temp)
-    illumi = get_sensor_value(:illumination)
+    return {"temp" => get_sensor_value(:temp), "illumi" => get_sensor_value(:illumination)}
   end
-
 end
 
 dir = File.expand_path(File.dirname(__FILE__))
@@ -65,7 +63,9 @@ sleep 3
 p boards["main"].get_sensor_value(:temp)
 p boards["main"].get_sensor_value(:illumination)
 p boards["main"].get_sensor_value(:gomi)
+p boards["main"].get_all_sensor_value
 
 require 'sinatra'
 get '/' do
+  
 end
